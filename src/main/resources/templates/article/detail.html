@@ -1,0 +1,19 @@
+<h1>글 상세 페이지</h1>
+
+<ul style="display: flex; gap: 20px;">
+    <li><a href="/article/write">글 쓰기</a></li>
+    <li><a href="/article/list">글 목록</a></li>
+</ul>
+
+
+<h2>제목 : <span th:text="${article.title}"></span></h2>
+<h2>내용 : <span th:text="${article.body}"></span></h2>
+
+<hr>
+
+<ul style="display: flex; gap: 20px;">
+    <li><a th:href="|/article/modify/${article.id}|">글 수정</a></li>
+    <li><a th:href="|/article/delete/${aritcle.id}|">글 삭제</a></li>
+</ul>
+
+
