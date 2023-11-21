@@ -2,10 +2,8 @@ package com.ll.sb20231114.domain.article.article.controller;
 
 import com.ll.sb20231114.domain.article.article.entity.Article;
 import com.ll.sb20231114.domain.article.article.service.ArticleService;
-import com.ll.sb20231114.domain.member.member.entity.Member;
 import com.ll.sb20231114.domain.member.member.service.MemberService;
 import com.ll.sb20231114.global.rq.Rq;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -18,7 +16,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
-import java.util.Optional;
 
 @Controller
 @RequiredArgsConstructor
@@ -44,27 +41,14 @@ public class ArticleController {
 
     @PostMapping("/article/write")
     String write(@Valid WriteForm writeForm) {
-
-        Article article = articleService.write(writeForm.title, writeForm.body);
+        Article article = articleService.write(rq.getMember(),writeForm.title, writeForm.body);
 
         return rq.redirect("/article/list","%d번 게시물 생성되었습니다.".formatted(article.getId()));
 
     }
 
     @GetMapping("/article/list")
-    String showList(Model model, HttpServletRequest req){
-        // 쿠키 이름이 loginedMemberId 이것인 것의 값을 가져와서 long타입으로 변환, 만약에 그런게 없다면,0을 반환
-        long loginedMemberId = Optional.
-                ofNullable(req.getSession().getAttribute("loginedMemberId"))
-                .map(id -> (long) id)
-                .orElse(0L);
-
-
-        if(loginedMemberId > 0){
-            Member loginedMember = memberService.findById(loginedMemberId).get();
-            model.addAttribute("loginedMember", loginedMember);
-        }
-
+    String showList(Model model){
         List<Article> articles = articleService.findAll();
         model.addAttribute("articles", articles);
 
@@ -90,8 +74,11 @@ public class ArticleController {
 
     @GetMapping("/article/modify/{id}")
     String modifyArticleById(Model model,@PathVariable long id) {
-
         Article article = articleService.findById(id).get();
+
+        if(article == null) throw new RuntimeException("존재하지 않는 게시물입니다.");
+
+        if( !articleService.canModify(rq.getMember(),article)) throw new RuntimeException("수정 권환이 없습니다.");
 
         model.addAttribute("article",article);
 
@@ -100,15 +87,23 @@ public class ArticleController {
 
     @PostMapping("/article/modify/{id}")
     String modify(@PathVariable long id, @Valid ModifyForm modifyForm){
+        Article article = articleService.findById(id).get();
+
+        if( !articleService.canModify(rq.getMember(),article)) throw new RuntimeException("수정 권환이 없습니다.");
+
         articleService.modify(id,modifyForm.title,modifyForm.body);
+
 
         return rq.redirect("/article/list","%d번 게시물 수정되었습니다.".formatted(id));
     }
 
     @GetMapping("/article/delete/{id}")
     String deleteArticleById(Model model,@PathVariable long id) {
+        Article article = articleService.findById(id).get();
 
-        articleService.delete(id);
+        if (!articleService.canDelete(rq.getMember(), article)) throw new RuntimeException("삭제권한이 없습니다.");
+
+        articleService.delete(article);
         
         return rq.redirect("/article/list","%d번 게시물 삭제되었습니다.".formatted(id));
     }
